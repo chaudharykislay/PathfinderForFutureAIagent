@@ -25,9 +25,9 @@ async function generateStructured<T>({
 }: {
   label: string;
   prompt: string;
-  schema: z.ZodType<T>;
+  schema: z.ZodType<T, z.ZodTypeDef, unknown>;
   fallback: T;
-}) {
+}): Promise<T> {
   try {
     const { output } = await generateText({
       model: model(),
