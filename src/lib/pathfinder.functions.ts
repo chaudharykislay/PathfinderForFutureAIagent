@@ -15,19 +15,16 @@ function model() {
 
 const sectorSchema = z.object({
   intro: z.string().describe("Warm, intelligent 1-2 sentence acknowledgment of the student's level."),
-  sectors: z
-    .array(
-      z.object({
-        name: z.string(),
-        description: z.string().describe("2-line honest description"),
-        demand: z.number().min(1).max(5).describe("Market demand rating 1-5"),
-        salaryRange: z.string().describe("Avg salary range in India, e.g. '₹6–25 LPA'"),
-        difficulty: z.enum(["Moderate", "Hard", "Very Hard"]),
-        whySuitsYou: z.string().describe("Why this fits their current class level, one sentence"),
-      }),
-    )
-    .min(6)
-    .max(8),
+  sectors: z.array(
+    z.object({
+      name: z.string(),
+      description: z.string().describe("2-line honest description"),
+      demand: z.number().describe("Market demand rating 1-5"),
+      salaryRange: z.string().describe("Avg salary range in India, e.g. '₹6–25 LPA'"),
+      difficulty: z.string().describe("Moderate, Hard, or Very Hard"),
+      whySuitsYou: z.string().describe("Why this fits their current class level, one sentence"),
+    }),
+  ).describe("6 to 8 sectors"),
   honestNote: z.string(),
 });
 
@@ -39,9 +36,10 @@ export const getSectors = createServerFn({ method: "POST" })
       system: PATHFINDER_SYSTEM_PROMPT,
       output: Output.object({ schema: sectorSchema }),
       prompt: `Student current level: "${data.classLevel}".
-Return 6-8 future career SECTORS realistically available to them right now in India.
+Return exactly 6-8 future career SECTORS realistically available to them right now in India.
 Rank by current market demand and future scope — not by what sounds impressive.
-Be honest about difficulty and salary. Tailor "whySuitsYou" to their specific level.
+Be honest about difficulty (use only "Moderate", "Hard", or "Very Hard") and salary.
+Demand must be an integer 1-5. Tailor "whySuitsYou" to their specific level.
 Include a final "honestNote" explaining ranking is by demand+scope, not prestige.`,
     });
     return output;
@@ -49,20 +47,17 @@ Include a final "honestNote" explaining ranking is by demand+scope, not prestige
 
 const specSchema = z.object({
   comment: z.string().describe("Short, intelligent, sector-specific acknowledgment."),
-  specializations: z
-    .array(
-      z.object({
-        name: z.string(),
-        whatTheyDo: z.string().describe("1-2 lines, honest"),
-        growth: z.number().min(1).max(5),
-        fresherPackage: z.string(),
-        seniorPackage: z.string(),
-        globalDemand: z.enum(["Low", "Medium", "High", "Very High"]),
-        recommendedIfYouLike: z.string(),
-      }),
-    )
-    .min(6)
-    .max(10),
+  specializations: z.array(
+    z.object({
+      name: z.string(),
+      whatTheyDo: z.string().describe("1-2 lines, honest"),
+      growth: z.number().describe("1 to 5"),
+      fresherPackage: z.string(),
+      seniorPackage: z.string(),
+      globalDemand: z.string().describe("Low, Medium, High, or Very High"),
+      recommendedIfYouLike: z.string(),
+    }),
+  ).describe("6 to 10 specializations"),
 });
 
 export const getSpecializations = createServerFn({ method: "POST" })
@@ -76,7 +71,8 @@ export const getSpecializations = createServerFn({ method: "POST" })
       output: Output.object({ schema: specSchema }),
       prompt: `Student level: "${data.classLevel}". They picked sector: "${data.sector}".
 Generate 6-10 real sub-fields/specializations inside this sector with honest "what people actually do",
-growth 1-5, fresher and senior package ranges in India (2024-25), global demand bucket,
+growth integer 1-5, fresher and senior package ranges in India (2024-25),
+globalDemand must be one of "Low", "Medium", "High", "Very High",
 and "recommended if you like" personality/skill hint.
 Also include a one-line intelligent, specific comment (not generic) about their sector choice.`,
     });
@@ -91,37 +87,29 @@ const roadmapSchema = z.object({
     top10PercentVsAverage: z.string(),
     timeToGood: z.string(),
   }),
-  phases: z
-    .array(
-      z.object({
-        name: z.string().describe("e.g. 'Phase 1: Foundation'"),
-        duration: z.string(),
-        goals: z.array(z.string()).min(2),
-        successLooksLike: z.string(),
-        resources: z.object({
-          youtube: z.array(z.string()).describe("Specific channel names"),
-          freePlatforms: z.array(z.string()),
-          paidIfWorthIt: z.array(z.string()),
-          books: z
-            .array(z.object({ title: z.string(), author: z.string(), why: z.string() }))
-            .min(1),
-          practicePlatforms: z.array(z.string()),
-        }),
+  phases: z.array(
+    z.object({
+      name: z.string().describe("e.g. 'Phase 1: Foundation'"),
+      duration: z.string(),
+      goals: z.array(z.string()),
+      successLooksLike: z.string(),
+      resources: z.object({
+        youtube: z.array(z.string()).describe("Specific channel names"),
+        freePlatforms: z.array(z.string()),
+        paidIfWorthIt: z.array(z.string()),
+        books: z.array(z.object({ title: z.string(), author: z.string(), why: z.string() })),
+        practicePlatforms: z.array(z.string()),
       }),
-    )
-    .length(4),
+    }),
+  ).describe("Exactly 4 phases: Foundation, Building, Application, Mastery"),
   weeklyRoutine: z.object({
     assumption: z.string().describe("e.g. 'Assumes school until 3pm + homework'"),
-    days: z
-      .array(
-        z.object({
-          day: z.enum(["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]),
-          blocks: z
-            .array(z.object({ time: z.string(), activity: z.string() }))
-            .min(1),
-        }),
-      )
-      .length(7),
+    days: z.array(
+      z.object({
+        day: z.string().describe("Mon, Tue, Wed, Thu, Fri, Sat, or Sun"),
+        blocks: z.array(z.object({ time: z.string(), activity: z.string() })),
+      }),
+    ).describe("Exactly 7 days Mon-Sun"),
   }),
   milestones: z.object({
     month1: z.string(),
@@ -130,24 +118,20 @@ const roadmapSchema = z.object({
     year1: z.string(),
     selfAssessment: z.string(),
   }),
-  projects: z
-    .array(
-      z.object({
-        title: z.string(),
-        what: z.string(),
-        why: z.string(),
-        skillsShown: z.string(),
-        whereToHost: z.string(),
-      }),
-    )
-    .min(3)
-    .max(5),
-  realExamples: z
-    .array(
-      z.object({
-        name: z.string(),
-        background: z.string(),
-        whatTheyDid: z.string(),
+  projects: z.array(
+    z.object({
+      title: z.string(),
+      what: z.string(),
+      why: z.string(),
+      skillsShown: z.string(),
+      whereToHost: z.string(),
+    }),
+  ).describe("3 to 5 projects"),
+  realExamples: z.array(
+    z.object({
+      name: z.string(),
+      background: z.string(),
+      whatTheyDid: z.string(),
         whereTheyAreNow: z.string(),
       }),
     )

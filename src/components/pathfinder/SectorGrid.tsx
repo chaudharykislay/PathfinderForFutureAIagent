@@ -5,7 +5,7 @@ export type Sector = {
   description: string;
   demand: number;
   salaryRange: string;
-  difficulty: "Moderate" | "Hard" | "Very Hard";
+  difficulty: string;
   whySuitsYou: string;
 };
 
