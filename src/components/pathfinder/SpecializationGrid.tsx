@@ -6,7 +6,7 @@ export type Spec = {
   growth: number;
   fresherPackage: string;
   seniorPackage: string;
-  globalDemand: "Low" | "Medium" | "High" | "Very High";
+  globalDemand: string;
   recommendedIfYouLike: string;
 };
 
